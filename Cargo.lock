@@ -1,0 +1,46 @@
+[root]
+name = "testbed"
+version = "0.0.1"
+dependencies = [
+ "glfw 0.0.1 (git+https://github.com/bjz/glfw-rs)",
+ "mithril 0.0.1 (git+https://github.com/yggie/mithril.git)",
+]
+
+[[package]]
+name = "glfw"
+version = "0.0.1"
+source = "git+https://github.com/bjz/glfw-rs#746dcc5dfa4c5e0a5a5dc65d034e16eec2562d99"
+dependencies = [
+ "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?branch=cargo-3.0.4)",
+ "log 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "semver 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "glfw-sys"
+version = "3.0.4"
+source = "git+https://github.com/servo/glfw?branch=cargo-3.0.4#765dace7e4125b87c764f5ac0e7a80eae5c550b2"
+
+[[package]]
+name = "log"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "regex 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "mithril"
+version = "0.0.1"
+source = "git+https://github.com/yggie/mithril.git#f11fd792552f6a496f131060f8bd4d60824274c1"
+
+[[package]]
+name = "regex"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "semver"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+

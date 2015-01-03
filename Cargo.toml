@@ -1,0 +1,13 @@
+[package]
+
+name = "testbed"
+version = "0.0.1"
+authors = ["Bryan Yap <bryan.yap@alliants.com>"]
+
+
+[dependencies.mithril]
+git = "https://github.com/yggie/mithril.git"
+
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs"
