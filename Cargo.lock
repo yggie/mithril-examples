@@ -2,18 +2,43 @@
 name = "testbed"
 version = "0.0.1"
 dependencies = [
+ "gl 0.0.5 (git+https://github.com/bjz/gl-rs)",
  "glfw 0.0.1 (git+https://github.com/bjz/glfw-rs)",
- "mithril 0.0.1 (git+https://github.com/yggie/mithril.git)",
+]
+
+[[package]]
+name = "gl"
+version = "0.0.5"
+source = "git+https://github.com/bjz/gl-rs#b0e94e8aa44b9b5176a91b1e98680db69f4be93c"
+dependencies = [
+ "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs)",
+ "gl_generator 0.0.12 (git+https://github.com/bjz/gl-rs)",
+]
+
+[[package]]
+name = "gl_common"
+version = "0.0.3"
+source = "git+https://github.com/bjz/gl-rs#b0e94e8aa44b9b5176a91b1e98680db69f4be93c"
+
+[[package]]
+name = "gl_generator"
+version = "0.0.12"
+source = "git+https://github.com/bjz/gl-rs#b0e94e8aa44b9b5176a91b1e98680db69f4be93c"
+dependencies = [
+ "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs)",
+ "khronos_api 0.0.4 (git+https://github.com/bjz/gl-rs)",
+ "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xml-rs 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "glfw"
 version = "0.0.1"
-source = "git+https://github.com/bjz/glfw-rs#746dcc5dfa4c5e0a5a5dc65d034e16eec2562d99"
+source = "git+https://github.com/bjz/glfw-rs#ff5780b06b0e5cd2f1198b4891e55f8fdac6a4d9"
 dependencies = [
  "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?branch=cargo-3.0.4)",
- "log 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "semver 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "semver 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -22,25 +47,30 @@ version = "3.0.4"
 source = "git+https://github.com/servo/glfw?branch=cargo-3.0.4#765dace7e4125b87c764f5ac0e7a80eae5c550b2"
 
 [[package]]
+name = "khronos_api"
+version = "0.0.4"
+source = "git+https://github.com/bjz/gl-rs#b0e94e8aa44b9b5176a91b1e98680db69f4be93c"
+
+[[package]]
 name = "log"
-version = "0.1.6"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "regex 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "mithril"
-version = "0.0.1"
-source = "git+https://github.com/yggie/mithril.git#f11fd792552f6a496f131060f8bd4d60824274c1"
-
-[[package]]
 name = "regex"
-version = "0.1.5"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "semver"
-version = "0.1.7"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "xml-rs"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
