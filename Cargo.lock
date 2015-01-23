@@ -1,32 +1,34 @@
 [root]
-name = "testbed"
+name = "mithril-examples"
 version = "0.0.1"
 dependencies = [
  "gl 0.0.5 (git+https://github.com/bjz/gl-rs)",
  "glfw 0.0.1 (git+https://github.com/bjz/glfw-rs)",
+ "mithril 0.0.1 (git+https://github.com/yggie/mithril.git)",
 ]
 
 [[package]]
 name = "gl"
 version = "0.0.5"
-source = "git+https://github.com/bjz/gl-rs#b0e94e8aa44b9b5176a91b1e98680db69f4be93c"
+source = "git+https://github.com/bjz/gl-rs#581f422d49ec731a8e6e2ef9a763c8c35a530160"
 dependencies = [
  "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs)",
  "gl_generator 0.0.12 (git+https://github.com/bjz/gl-rs)",
+ "khronos_api 0.0.5 (git+https://github.com/bjz/gl-rs)",
 ]
 
 [[package]]
 name = "gl_common"
 version = "0.0.3"
-source = "git+https://github.com/bjz/gl-rs#b0e94e8aa44b9b5176a91b1e98680db69f4be93c"
+source = "git+https://github.com/bjz/gl-rs#581f422d49ec731a8e6e2ef9a763c8c35a530160"
 
 [[package]]
 name = "gl_generator"
 version = "0.0.12"
-source = "git+https://github.com/bjz/gl-rs#b0e94e8aa44b9b5176a91b1e98680db69f4be93c"
+source = "git+https://github.com/bjz/gl-rs#581f422d49ec731a8e6e2ef9a763c8c35a530160"
 dependencies = [
  "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs)",
- "khronos_api 0.0.4 (git+https://github.com/bjz/gl-rs)",
+ "khronos_api 0.0.5 (git+https://github.com/bjz/gl-rs)",
  "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "xml-rs 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -34,7 +36,7 @@ dependencies = [
 [[package]]
 name = "glfw"
 version = "0.0.1"
-source = "git+https://github.com/bjz/glfw-rs#ff5780b06b0e5cd2f1198b4891e55f8fdac6a4d9"
+source = "git+https://github.com/bjz/glfw-rs#a31e95602b2ffec3a93157ed55df58cb023d4721"
 dependencies = [
  "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?branch=cargo-3.0.4)",
  "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -48,8 +50,8 @@ source = "git+https://github.com/servo/glfw?branch=cargo-3.0.4#765dace7e4125b87c
 
 [[package]]
 name = "khronos_api"
-version = "0.0.4"
-source = "git+https://github.com/bjz/gl-rs#b0e94e8aa44b9b5176a91b1e98680db69f4be93c"
+version = "0.0.5"
+source = "git+https://github.com/bjz/gl-rs#581f422d49ec731a8e6e2ef9a763c8c35a530160"
 
 [[package]]
 name = "log"
@@ -58,6 +60,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "regex 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "mithril"
+version = "0.0.1"
+source = "git+https://github.com/yggie/mithril.git#5a156096ab9b80cd6e39aa84ecc60225f72a22bf"
 
 [[package]]
 name = "regex"

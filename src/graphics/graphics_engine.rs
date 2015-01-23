@@ -1,47 +1,90 @@
 extern crate gl;
 extern crate glfw;
-extern crate libc;
+extern crate mithril;
 
 use std::mem;
 use std::ptr;
 use std::str;
 use std::iter;
+use std::rc::Rc;
 use gl::types::*;
+use self::mithril::math::Vector;
 use std::ffi::CString;
+use graphics;
+
+macro_rules! verify(
+    ($e: expr) => {
+        {
+            let result = $e;
+            assert_eq!(gl::GetError(), 0);
+            result
+        }
+    }
+);
 
 pub struct GraphicsEngine<'a> {
+    camera: graphics::Camera,
     program_id: GLuint,
     vertex_shader_id: GLuint,
     fragment_shader_id: GLuint,
-    vertex_array_id: GLuint,
-    vertex_buffer_id: GLuint,
+    color_id: GLint,
+    model_matrix_id: GLint,
+    view_matrix_id: GLint,
+    projection_matrix_id: GLint,
+    objects: Vec<graphics::Object<'a>>,
+    assets: Vec<Rc<Asset<'a>>>,
+    assets_vertex_array_id: GLuint,
+}
+
+pub struct Buffer {
+    id: GLuint,
+    length: usize,
+}
+
+pub struct Asset<'a> {
+    vertex_buffer: Buffer,
+    normal_buffer: Buffer,
+    element_buffer: Buffer,
 }
 
 impl<'a> GraphicsEngine<'a> {
-    pub fn new(window: &'a glfw::Window) -> GraphicsEngine<'a> {
+    pub fn new(window: &glfw::Window) -> GraphicsEngine<'a> {
         let mut graphics = GraphicsEngine{
+            camera: graphics::Camera::new(Vector::new(4.0, 4.0, 4.0), Vector::new(0.0, 0.0, 0.0), Vector::new(0.0, 1.0, 0.0)),
             program_id: 0,
             vertex_shader_id: 0,
             fragment_shader_id: 0,
-            vertex_array_id: 0,
-            vertex_buffer_id: 0,
+            color_id: -1,
+            model_matrix_id: -1,
+            view_matrix_id: -1,
+            projection_matrix_id: -1,
+            assets: Vec::new(),
+            assets_vertex_array_id: 0,
+            objects: Vec::new(),
         };
 
-        graphics.initialize(window);
+        gl::load_with(|s| window.get_proc_address(s));
+        graphics.initialize();
 
         return graphics;
     }
 
-    fn initialize(&mut self, window: &glfw::Window) {
-        gl::load_with(|s| window.get_proc_address(s));
-
+    fn initialize(&mut self) {
         self.vertex_shader_id = compile_shader(gl::VERTEX_SHADER, "
         #version 150
 
-        in vec3 vPos;
+        uniform mat4 model_matrix;
+        uniform mat4 view_matrix;
+        uniform mat4 projection_matrix;
+
+        in vec3 vertex_pos;
+        in vec3 vertex_norm;
+
+        out vec3 normal;
 
         void main(void) {
-            gl_Position = vec4(vPos, 1.0);
+            gl_Position = projection_matrix * view_matrix * model_matrix * vec4(vertex_pos, 1.0);
+            normal = vec3(view_matrix * model_matrix * vec4(vertex_norm, 0.0));
         }
         ");
 
@@ -49,10 +92,17 @@ impl<'a> GraphicsEngine<'a> {
         #version 150
 
         uniform vec4 color;
+
+        in vec3 normal;
+
         out vec4 out_color;
 
         void main(void) {
-            out_color = vec4(1.0, 0.0, 0.0, 1.0);
+            const vec3 vertex_to_light = normalize(vec3(1.0, 1.0, 0.0));
+
+            float diffuse = clamp(pow(dot(normal, vertex_to_light), 3), 0.0, 0.7) + 0.3;
+
+            out_color = vec4(color.xyz * diffuse, 1.0);
         }
         ");
 
@@ -60,33 +110,88 @@ impl<'a> GraphicsEngine<'a> {
 
 
         unsafe {
+            gl::GenVertexArrays(1, &mut self.assets_vertex_array_id as *mut u32);
 
-            self.vertex_array_id = 0;
-            gl::GenVertexArrays(1, &mut self.vertex_array_id as *mut u32);
-            gl::BindVertexArray(self.vertex_array_id);
+            verify!(gl::UseProgram(self.program_id));
 
-            let vertex_buffer_data: [GLfloat; 9] = [
-                -1.0, -1.0, 0.0,
-                 1.0, -1.0, 0.0,
-                 0.0,  1.0, 0.0,
-                ];
-
-            self.vertex_buffer_id = 0;
-            gl::GenBuffers(1, &mut self.vertex_buffer_id as *mut u32);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer_id);
-            gl::BufferData(gl::ARRAY_BUFFER, mem::size_of::<[GLfloat; 9]>() as i64, mem::transmute(&vertex_buffer_data[0]), gl::STATIC_DRAW);
-
-            gl::UseProgram(self.program_id);
-
-            gl::ClearColor(0.3, 0.9, 0.3, 0.9);
+            gl::ClearColor(0.1, 0.4, 0.2, 0.9);
             gl::LineWidth(1.0);
-            gl::Enable(gl::DEPTH_TEST);
+            verify!(gl::Enable(gl::DEPTH_TEST));
+            gl::DepthFunc(gl::LESS);
             gl::ClearDepth(1.0);
-            gl::PolygonMode(gl::FRONT, gl::LINE);
-            gl::PolygonMode(gl::BACK, gl::FILL);
-            gl::Enable(gl::BLEND);
-            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+
+            let model_variable_name = CString::from_slice("model_matrix".as_bytes());
+            self.model_matrix_id = gl::GetUniformLocation(self.program_id, model_variable_name.as_ptr());
+
+            let color_variable_name = CString::from_slice("color".as_bytes());
+            self.color_id = gl::GetUniformLocation(self.program_id, color_variable_name.as_ptr());
+            gl::Uniform4fv(self.color_id, 1, mem::transmute(&[1.0f32, 0.0f32, 0.0f32, 1.0f32][0]));
+
+            let view_matrix_variable_name = CString::from_slice("view_matrix".as_bytes());
+            self.view_matrix_id = gl::GetUniformLocation(self.program_id, view_matrix_variable_name.as_ptr());
+
+            let projection_matrix_variable_name = CString::from_slice("projection_matrix".as_bytes());
+            self.projection_matrix_id = gl::GetUniformLocation(self.program_id, projection_matrix_variable_name.as_ptr());
         }
+    }
+
+
+    pub fn new_asset_from_file(&mut self, filepath: &str) -> Rc<Asset> {
+        let (vertices, normals, indices) = graphics::utils::import_from_obj(filepath);
+        let mut vertex_buffer_id: GLuint = 0;
+        let mut element_buffer_id: GLuint = 0;
+        let mut normal_buffer_id: GLuint = 0;
+
+        unsafe {
+            // send vertex data
+            gl::GenBuffers(1, &mut vertex_buffer_id as *mut u32);
+            gl::BindBuffer(gl::ARRAY_BUFFER, vertex_buffer_id);
+            gl::BufferData(gl::ARRAY_BUFFER,
+                           (vertices.len() * mem::size_of::<GLfloat>()) as i64,
+                           mem::transmute(&vertices.as_slice()[0]),
+                           gl::STATIC_DRAW);
+
+            // send vertex index data
+            gl::GenBuffers(1, &mut element_buffer_id as *mut u32);
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, element_buffer_id);
+            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
+                           (indices.len() * mem::size_of::<GLuint>()) as i64,
+                           mem::transmute(&indices.as_slice()[0]),
+                           gl::STATIC_DRAW);
+
+            // send vertex normal data
+            gl::GenBuffers(1, &mut normal_buffer_id as *mut u32);
+            gl::BindBuffer(gl::ARRAY_BUFFER, normal_buffer_id);
+            gl::BufferData(gl::ARRAY_BUFFER,
+                           (normals.len() * mem::size_of::<GLfloat>()) as i64,
+                           mem::transmute(&normals.as_slice()[0]),
+                           gl::STATIC_DRAW);
+
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        }
+
+        let asset_ref = Rc::new(Asset{
+            vertex_buffer: Buffer{ id: vertex_buffer_id, length: vertices.len() },
+            normal_buffer: Buffer{ id: normal_buffer_id, length: normals.len() },
+            element_buffer: Buffer{ id: element_buffer_id, length: indices.len() },
+        });
+        self.assets.push(asset_ref.clone());
+
+        return asset_ref;
+    }
+
+
+    pub fn create_object_from_asset(&mut self, asset: Rc<Asset<'a>>) -> &mut graphics::Object<'a> {
+        self.objects.push(graphics::Object::new(asset.clone()));
+
+        // compiler HAX
+        let index = self.objects.len() - 1;
+        return &mut self.objects[index];
+    }
+
+
+    pub fn camera_mut(&mut self) -> &mut graphics::Camera {
+        &mut self.camera
     }
 
 
@@ -94,11 +199,48 @@ impl<'a> GraphicsEngine<'a> {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
+            let view_matrix = self.camera.view_matrix();
+            gl::UniformMatrix4fv(self.view_matrix_id, 1, gl::TRUE, mem::transmute(&view_matrix[0]));
+
+            let projection_matrix = self.camera.projection_matrix();
+            gl::UniformMatrix4fv(self.projection_matrix_id, 1, gl::TRUE, mem::transmute(&projection_matrix[0]));
+
+            // draw simple objects
+            gl::BindVertexArray(self.assets_vertex_array_id);
+            for object in self.objects.iter() {
+                self.render_object(object);
+            }
+            gl::BindVertexArray(0);
+        }
+    }
+
+
+    fn render_object(&self, object: &graphics::Object) {
+        let asset = object.asset();
+
+        unsafe {
+            gl::UniformMatrix4fv(self.model_matrix_id, 1, gl::TRUE, mem::transmute(&object.model_matrix()[0]));
+
             gl::EnableVertexAttribArray(0);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer_id);
+            gl::EnableVertexAttribArray(1);
+
+            // set up the vertex data pointer
+            gl::BindBuffer(gl::ARRAY_BUFFER, asset.vertex_buffer.id);
             gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 0, ptr::null());
 
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            // set up the normal data pointer
+            gl::BindBuffer(gl::ARRAY_BUFFER, asset.normal_buffer.id);
+            gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, 0, ptr::null());
+
+            // unbind the buffers, no longer need to modify the pointers
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+
+            // bind the common index array
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, asset.element_buffer.id);
+            verify!(gl::Enable(gl::DEPTH_TEST));
+            gl::DrawElements(gl::TRIANGLES, asset.element_buffer.length as i32, gl::UNSIGNED_INT, ptr::null());
+
+            gl::DisableVertexAttribArray(1);
             gl::DisableVertexAttribArray(0);
         }
     }
@@ -111,8 +253,13 @@ impl<'a> Drop for GraphicsEngine<'a> {
             gl::DeleteProgram(self.program_id);
             gl::DeleteShader(self.fragment_shader_id);
             gl::DeleteShader(self.vertex_shader_id);
-            gl::DeleteBuffers(1, &self.vertex_buffer_id);
-            gl::DeleteVertexArrays(1, &self.vertex_array_id);
+            gl::DeleteVertexArrays(1, &self.assets_vertex_array_id);
+
+            for asset in self.assets.iter() {
+                gl::DeleteBuffers(1, &asset.vertex_buffer.id);
+                gl::DeleteBuffers(1, &asset.element_buffer.id);
+                gl::DeleteBuffers(1, &asset.normal_buffer.id);
+            }
         }
     }
 }
